@@ -7,20 +7,23 @@ import System.Directory
 
 -- https://hackage.haskell.org/package/filepath-1.4.100.1/docs/System-FilePath-Posix.html
 import System.FilePath 
-
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
-
-
-{- ====================================== CONSTANTS ====================================== -}
+import Data.Char (ord, chr)
+import Data.List (isPrefixOf)
+import Data.Map (Map)
+import qualified Data.Map as Map
+import Data.Char (isAscii)
+{- ====================================== DATA DEF ====================================== -}
 datasetsPath = "../datasets" :: FilePath
-trainPositivePath = datasetsPath ++ "/train_positive" :: FilePath
-trainNegativePath = datasetsPath ++ "/train_negative" :: FilePath
-testPositivePath = datasetsPath ++ "/test_positive" :: FilePath
-testNegativePath = datasetsPath ++ "/test_negative" :: FilePath
+trainPositivePath   = datasetsPath ++ "/train_positive" :: FilePath
+trainNegativePath   = datasetsPath ++ "/train_negative" :: FilePath
+testPositivePath    = datasetsPath ++ "/test_positive"  :: FilePath
+testNegativePath    = datasetsPath ++ "/test_negative"  :: FilePath
+stopwordsFilePath   = datasetsPath ++ "/stopwords.txt"  :: FilePath
+exampleDirPath      = datasetsPath ++ "/exampleDir"
 
--- exampleFilePath = datasetsPath ++ "/exampleDir"
-
+punctuation = "!\"#$%&'()*+, -./:;<=>?@[\\]^_`{|}~" 
 
 
 
@@ -34,26 +37,66 @@ testNegativePath = datasetsPath ++ "/test_negative" :: FilePath
 main :: IO ()
 main 
     = do 
-        
-        txtFilePaths <- getAllFilePaths trainPositivePath :: IO [String] -- create arraypath of each file
+        -- create arraypath of each file.txt in directory
+        trainPositiveFilePaths <-getAllFilePaths trainPositivePath :: IO [String]
+        trainNegativeFilePaths <-getAllFilePaths trainNegativePath :: IO [String]
+        testPositiveFilePaths <- getAllFilePaths testPositivePath :: IO [String] 
+        testNegativeFilePaths <-getAllFilePaths testNegativePath :: IO [String]
         -- printDirContents txtFilePaths -- print contents of each file
-        
-        
+
+        -- get the array of stop words to remove
+        s <- readFileStrict stopwordsFilePath :: IO String
+        let stopWords = splitOn ['\n'] s :: [String]
+
+        -- comment all out if you don't want the program to take forever
+        map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
+        map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
+        map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
+        map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
+        -- printMap (Map.assocs map_train_pos)
+        -- printMap (Map.assocs map_train_neg)
+        -- printMap (Map.assocs map_test_pos)
+        -- printMap (Map.assocs map_test_neg)
+        -- printStringArray f
+
+
+
+        let zorCount = Map.lookup "zor" map_train_pos :: Maybe Int
+        let angelsCount = Map.lookup "angels" map_train_pos :: Maybe Int
+        putStrLn (show zorCount)
+        putStrLn (show angelsCount)
         
         putStr "" -- prevent errors in case no IO is performed 
 
 
-
-
-
+printMap :: [(String, Int)] -> IO ()
+printMap [] = putStr ""
+printMap kvpair@((a, b):xs)
+    = do
+        putStrLn (a ++ " : " ++ show b)
+        printMap xs
 
 -- Get directory contents as array of string, each element is an individual review from some txt file from filePaths
-getDirContents :: [String] -> [String] -> IO [String]
-getDirContents acc [] = return acc 
-getDirContents acc filePaths@(x:xs)
+getDirContents :: Map String Int -> [String] -> [String] -> IO (Map String Int)
+getDirContents dict stopWorsds [] = return dict
+getDirContents dict stopWords filePaths@(x:xs)
     = do
         xData <- readFileStrict x
-        getDirContents (xData : acc) xs
+
+        -- remove all non unicode characters and convert to lowercase 
+        let xSplitLower = map (\s -> lowerString (filter isAscii s)) (splitOn punctuation xData) :: [String]
+        -- remove stop words
+        let xSplitLowerStopWords = filter (`notElem` stopWords) xSplitLower :: [String]
+        -- insert the words from the current file x into the dictionary dict
+        getDirContents (insertWords dict xSplitLowerStopWords) stopWords xs
+
+
+insertWords :: Map String Int -> [String] -> Map String Int
+insertWords map [] = map
+insertWords map words@(x:xs)
+    = case Map.lookup x map of
+            Just v -> insertWords (Map.insert x (v + 1) map) xs
+            Nothing -> insertWords (Map.insert x 1 map) xs
 
 {-
 I wanted to keep using hGetContents like in printFileContents, but I got the Error: "hGetContents": illegal operation (delayed read on closed handle)
@@ -76,18 +119,46 @@ readFileStrict = fmap T.unpack . TIO.readFile
 
 {- ======================================= HELPERS ======================================= -}
 
+-- Return the string representation of str with all lowercase letters
+lowerString :: String -> String
+lowerString "" = ""
+lowerString str@(x:xs) = letterToLower x : lowerString xs 
+
+-- return the lower case letter representation of ch
+letterToLower :: Char -> Char
+letterToLower ch 
+    | isCapitalLetter ch = chr (ord ch + 32)
+    | otherwise = ch
+
+-- returns true if the character is a capital letter, false if ch is any other character
+isCapitalLetter :: Char -> Bool
+isCapitalLetter ch = code >= 65 && code <= 90
+                     where code = ord ch
+
+-- Helper function to split fdata (file data) on a given list of separators (delim)
+splitOn :: (Eq t) => [t] -> [t] -> [[t]] 
+splitOn delim [] = [[]]
+splitOn delim fdata@(x:xs)
+    | x `elem` delim = [] : splitOn delim xs
+    | otherwise = ((x:acc) : tail)
+                where acc:tail = splitOn delim xs
+
+
+
 -- Individually perform putStrLn on array of string.
 -- Helpful to see what's happening
-printArray :: [String] -> IO ()
-printArray [] = putStr ""
-printArray arr@(x:xs) 
+printStringArray :: [String] -> IO ()
+printStringArray [] = putStr ""
+printStringArray arr@(x:xs) 
     = do
-        putStrLn (x ++ "\n")
-        printArray xs
+        if x /= ""
+            then putStrLn x
+            else putStr ""
+        printStringArray xs
 -- Try in main:
 -- txtFilePaths <- getAllFilePaths trainPositivePath :: IO [String] 
 -- content <- getDirContents [] txtFilePaths
--- printArray content
+-- printStringArray content
 
 
 -- Helper function to call printFileContents on each path in filePaths 
