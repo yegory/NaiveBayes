@@ -1,21 +1,16 @@
 # Naive Bayes for Sentiment Analysis
 
-### Group Members:
-- Konstantin 
+### Group members:
+- Konstantin
 - Yegor 
+---
 
 ## Project Background
-The [Bayes' theorem](https://en.wikipedia.org/wiki/Bayes%27_theorem) is a simple yet powerful mathematical formula that allows predictions to be made based on prior beliefs and the likelihood of evidence observed. 
 
-<div style="width: 16rem">
+The [Bayes' theorem](https://en.wikipedia.org/wiki/Bayes%27_theorem) is a simple yet powerful mathematical formula that allows predictions to be made based on prior beliefs and the likelihood of evidence observed.
 
-![Bayes' formula](/resources/bayes_formula_dark.svg#gh-light-mode-only "Bayes' formula") 
-</div>
-
-<div style="width: 16rem">
-
-![Bayes' formula](/resources/bayes_formula_light.svg#gh-dark-mode-only " Bayes' formula")
-</div>
+<img src="/resources/bayes_formula_dark.svg#gh-light-mode-only" width="220px" alt="Bayes' theorem'">
+<img src="/resources/bayes_formula_light.svg#gh-dark-mode-only" width="220px" alt="Bayes' theorem'">
  
 - $A, B = \text{events} $
 - $P(A) = \text{independent probability of A}$
@@ -32,17 +27,19 @@ Using [Haskell](https://wiki.haskell.org/Haskell), our program will:
 - perform **text preprocessing** on text data.
   - remove stop words (words that don't add much value to the text).
   - remove symbols/punctuation.
-- train and test the model using a publicly available dataset - the [IMDb dataset](https://ai.stanford.edu/~amaas/data/sentiment/) contains 25,000 positive and 25,000 negative movie reviews collected from [IMDb](https://en.wikipedia.org/wiki/IMDb).
+- train and test the model using a publicly available dataset[^1] - the [IMDb dataset](https://ai.stanford.edu/~amaas/data/sentiment/) contains 25,000 positive and 25,000 negative movie reviews collected from [IMDb](https://en.wikipedia.org/wiki/IMDb).
   - although the user can use our application on any other data, as long as it is added as a txt file in the correct folder within the *datasets* directory.
 - perform validation of a trained model using test data.
 - implement a command-line interface where users can input strings of reviews and get the model's inference result.
 
 ## What is the something extra?
+
 In addition to the expected basic functionality, our program will:
 - allow users to download the model parameters in a text file.
 - re-train the model with various dataset sizes and compare their performance.
 
 ## What did we learn from doing this?
+
 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed venenatis elit ligula, sed commodo turpis auctor ut. Donec vel metus tincidunt, eleifend urna ut, porttitor augue. Pellentesque feugiat, lorem convallis tempor viverra, risus nunc pulvinar diam, a gravida sem nisl sit amet ex.
 - Nunc quis elit id risus blandit lobortis.
   - Vestibulum at felis cursus, tincidunt urna non, vulputate nibh.
@@ -51,5 +48,20 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed venenatis elit ligu
 - Ut et lectus nec augue porta laoreet in nec metus.
 
 ---
-# How to Run and Use this program?
+
+## How to use this program?
+
 Sed consequat tincidunt ligula, sed auctor neque tincidunt id. Nunc sed neque cursus ante vehicula pulvinar posuere ac neque. Nulla facilisi. Morbi feugiat mi a viverra accumsan. Duis ut volutpat augue. In euismod purus in ullamcorper dictum. Sed mollis orci velit, in lacinia odio feugiat egestas. Sed neque lorem, hendrerit at pellentesque vel, hendrerit vehicula leo.
+
+[^1]: dataset citation, see [also](https://github.com/yegory/NaiveBayes/tree/master/datasets): 
+@InProceedings{maas-EtAl:2011:ACL-HLT2011,
+  author    = {Maas, Andrew L.  and  Daly, Raymond E.  and  Pham, Peter T.  and  Huang, Dan  and  Ng, Andrew Y.  and  Potts, Christopher},
+  title     = {Learning Word Vectors for Sentiment Analysis},
+  booktitle = {Proceedings of the 49th Annual Meeting of the Association for Computational Linguistics: Human Language Technologies},
+  month     = {June},
+  year      = {2011},
+  address   = {Portland, Oregon, USA},
+  publisher = {Association for Computational Linguistics},
+  pages     = {142--150},
+  url       = {http://www.aclweb.org/anthology/P11-1015 }
+}
