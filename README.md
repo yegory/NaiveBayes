@@ -1,19 +1,55 @@
-# NaiveBayes for Sentiment Analysis
+# Naive Bayes for Sentiment Analysis
 
 ### Group Members:
 - Konstantin 
 - Yegor 
 
-## What is the problem?
-The Bayes' theorem is a simple yet powerful mathematical formula that allows predictions to be made based on prior beliefs and the likelihood of evidence observed. A Naive Bayes classifier is in the family of probabilistic classifiers that is used among other things in tasks such as spam prediction, recommendation systems and others. Here we will be using the algorithm for sentiment analysis for movie reviews to classify them as either a positive or a negative review. 
-We will:
-- implement text preprocessing for the algorithm
-- implement the algorithm in Haskell
-- train and test the model using a publicly available dataset
-- implement a command-line interface where users can input strings of reviews and get the model's inference result
+## Project Background
+The [Bayes' theorem](https://en.wikipedia.org/wiki/Bayes%27_theorem) is a simple yet powerful mathematical formula that allows predictions to be made based on prior beliefs and the likelihood of evidence observed. 
+
+<div style="width: 16rem">
+
+![Bayes' formula](/resources/bayes_formula_dark.svg#gh-light-mode-only "Bayes' formula") 
+</div>
+
+<div style="width: 16rem">
+
+![Bayes' formula](/resources/bayes_formula_light.svg#gh-dark-mode-only " Bayes' formula")
+</div>
+ 
+- $A, B = \text{events} $
+- $P(A) = \text{independent probability of A}$
+- $P(B) = \text{independent probability of B}$
+- $P(A|B) = \text{probability of A given B is true}$
+- $P(B|A) = \text{probability of B given A is true}$
+
+A [Naive Bayes classifier](https://en.wikipedia.org/wiki/Naive_Bayes_classifier) is in the family of probabilistic classifiers that is used among other things in tasks such as: [spam prediction](https://en.wikipedia.org/wiki/Naive_Bayes_spam_filtering#:~:text=Naive%20Bayes%20spam%20filtering%20is,with%20roots%20in%20the%201990s), sentiment analysis, recommendation systems.
+
+## What problem does our program solve?
+Here we will be using the algorithm for sentiment analysis for movie reviews to classify them as either a positive or a negative review.
+
+Using [Haskell](https://wiki.haskell.org/Haskell), our program will:
+- perform **text preprocessing** on text data.
+  - remove stop words (words that don't add much value to the text).
+  - remove symbols/punctuation.
+- train and test the model using a publicly available dataset - the [IMDb dataset](https://ai.stanford.edu/~amaas/data/sentiment/) contains 25,000 positive and 25,000 negative movie reviews collected from [IMDb](https://en.wikipedia.org/wiki/IMDb).
+  - although the user can use our application on any other data, as long as it is added as a txt file in the correct folder within the *datasets* directory.
+- perform validation of a trained model using test data.
+- implement a command-line interface where users can input strings of reviews and get the model's inference result.
 
 ## What is the something extra?
-- allow users to download the model parameters in a text file
-- re-train the model with various dataset sizes and compare their performance
+In addition to the expected basic functionality, our program will:
+- allow users to download the model parameters in a text file.
+- re-train the model with various dataset sizes and compare their performance.
 
 ## What did we learn from doing this?
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed venenatis elit ligula, sed commodo turpis auctor ut. Donec vel metus tincidunt, eleifend urna ut, porttitor augue. Pellentesque feugiat, lorem convallis tempor viverra, risus nunc pulvinar diam, a gravida sem nisl sit amet ex.
+- Nunc quis elit id risus blandit lobortis.
+  - Vestibulum at felis cursus, tincidunt urna non, vulputate nibh.
+- Fusce ut ipsum vitae quam faucibus pellentesque eu quis eros.
+- Vestibulum faucibus sem sit amet vehicula volutpat.
+- Ut et lectus nec augue porta laoreet in nec metus.
+
+---
+# How to Run and Use this program?
+Sed consequat tincidunt ligula, sed auctor neque tincidunt id. Nunc sed neque cursus ante vehicula pulvinar posuere ac neque. Nulla facilisi. Morbi feugiat mi a viverra accumsan. Duis ut volutpat augue. In euismod purus in ullamcorper dictum. Sed mollis orci velit, in lacinia odio feugiat egestas. Sed neque lorem, hendrerit at pellentesque vel, hendrerit vehicula leo.
