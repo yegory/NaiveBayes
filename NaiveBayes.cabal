@@ -71,7 +71,7 @@ executable NaiveBayes
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.0.0, filepath
+    build-depends:    base ^>=4.17.0.0, aeson, containers-0.6.6
 
     -- Directories containing source files.
     hs-source-dirs:   app
