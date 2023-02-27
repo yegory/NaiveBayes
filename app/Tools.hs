@@ -11,7 +11,7 @@ import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy.Char8 as BS
 {- ====================================== DATA DEF ====================================== -}
 
-datasetsPath = "../datasets" :: FilePath
+datasetsPath = "datasets_dev" :: FilePath
 modelsPath = "../models" :: FilePath
 
 trainPositivePath   = datasetsPath ++ "/train_positive" :: FilePath

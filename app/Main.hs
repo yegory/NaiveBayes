@@ -24,28 +24,29 @@ main :: IO ()
 main 
     = do 
         -- create arraypath of each file.txt in directory
-        -- trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
+        trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
         -- trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
         -- testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
         -- testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
         -- printDirContents trainPositiveFilePaths -- print contents of each file
 
         -- get the array of stop words to remove
-        -- s <- readFileStrict stopwordsFilePath :: IO String
-        -- let stopWords = splitOn ['\n'] s :: [String]
+        s <- readFileStrict stopwordsFilePath :: IO String
+        let stopWords = splitOn ['\n'] s :: [String]
 
         -- comment all out if you don't want the program to take forever
-        -- map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
+        map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
         -- map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
         -- map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
         -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
+        putStr (show map_train_pos)
 
         -- comment below out if you want
         -- let fileName = "example"
         -- writeMapModelToDiskAsJSON fileName map_train_pos
         -- s <- readJsonModelFromDisk fileName
         -- printMap (Map.assocs s)
-        start
+        -- start
 
         putStr "" -- prevent errors in case no IO is performed 
 
