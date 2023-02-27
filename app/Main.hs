@@ -9,8 +9,10 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Map (Map)
 import Data.Set (Set)
+import Data.Maybe (Maybe)
 import qualified Data.Map as Map
 import qualified Data.Set as Set
+import qualified Data.Maybe as Maybe
 
 punctuation = "!\"#$%&'()*+, -./:;<=>?@[]^_`{|}~ "
 
@@ -41,9 +43,14 @@ main
         map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
         -- map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
         -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
+        putStr (show map_train_pos)
+        putStr (show map_train_neg)
 
         model <- trainModel map_train_pos map_train_neg
-        putStr (show model)
+        -- putStr (show model)
+
+        result <- inference model "Character director good." stopWords
+        putStr (show result)
 
         -- comment below out if you want
         -- let fileName = "example"
@@ -69,6 +76,11 @@ laplaceSmoothing dict vocab =
     in
         Map.union difference (Map.map (\count -> count + 1) dict)
 
+getLogProbs :: Map String Int -> Map String Double
+getLogProbs dict = let total = foldr (+) 0 dict
+        in (Map.map (\x -> log (fromIntegral x/fromIntegral total)) dict)
+            
+
 trainModel :: Map String Int -> Map String Int -> IO ((Map String Double, Map String Double, Set String))
 trainModel dictPos dictNeg = do
     let vocabulary = makeVocabulary dictPos dictNeg
@@ -78,14 +90,21 @@ trainModel dictPos dictNeg = do
     let logProbsNeg = getLogProbs smoothedNegCounts
     return (logProbsPos, logProbsNeg, vocabulary)
 
+sumLogProbs :: [String] -> Map String Double -> Double
+sumLogProbs tokenList dict = sum (map (\token -> 
+                            let value = Map.lookup token dict in
+                                Maybe.fromMaybe 0 value) tokenList)
 
-
-getLogProbs :: Map String Int -> Map String Double
-getLogProbs dict = let total = foldr (+) 0 dict
-        in (Map.map (\x -> log (fromIntegral x/fromIntegral total)) dict)
-            
-
-
+-- write a function that given a string review, produces an answer if it is positive or negative
+inference :: (Map String Double, Map String Double, Set String) -> String -> [String] -> IO (Bool)
+inference (dictPos, dictNeg, vocab) review stopWords = do
+    -- we want to parse the string into tokens
+    let xSplitLower = map (\s -> lowerString (filter keepletter s)) (splitOn punctuation review) :: [String]
+    let tokenList = filter (`notElem` stopWords) xSplitLower :: [String]
+    -- calculate log probability for being in positive
+    let logProbPos = sumLogProbs tokenList dictPos
+    let logProbNeg = sumLogProbs tokenList dictNeg
+    return (logProbPos < logProbNeg) -- NOTE the direction is reversed here ... there could be a bug
 
 -- Get directory contents as array of string, each element is an individual review from some txt file from filePaths
 getDirContents :: Map String Int -> [String] -> [String] -> IO (Map String Int)
