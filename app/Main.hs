@@ -8,7 +8,9 @@ import System.FilePath
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Map (Map)
+import Data.Set (Set)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 
 punctuation = "!\"#$%&'()*+, -./:;<=>?@[]^_`{|}~ "
 
@@ -41,10 +43,17 @@ main
         -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
         putStr (show map_train_pos)
 
-        -- now convert to dict of log-probabilities for positive files
-        logProbs <- getLogProbs map_train_pos
+        -- -- now convert to dict of log-probabilities for positive files
+        -- logProbs <- getLogProbs map_train_pos
+        -- putStr (show logProbs)
 
-        putStr (show logProbs)
+        -- putStr (show logProbs)
+        vocab <- (makeVocabulary map_train_pos map_train_pos)
+        -- putStr (show vocab)
+
+        smoothed <- laplaceSmoothing map_train_pos vocab
+
+        putStr (show smoothed)
 
         -- comment below out if you want
         -- let fileName = "example"
@@ -54,6 +63,27 @@ main
         -- start
 
         putStr "" -- prevent errors in case no IO is performed 
+
+
+-- create the vocabulary set by combining keys from positive and negative maps
+-- perform laplace smoothing 
+-- convert to log probabilities
+-- output the model as a tuple of the pos and neg log prob dicts and the bocabulary
+
+makeVocabulary :: Map String Int -> Map String Int -> IO (Set String)
+makeVocabulary dictPos dictNeg = return (Set.fromList (map (\(x,y) -> x) (Map.toList (Map.union dictNeg dictPos))))
+
+laplaceSmoothing :: Map String Int -> Set String -> IO (Map String Int)
+laplaceSmoothing dict vocab = 
+    let difference = Map.difference (Map.fromList (map (\token -> (token, 1)) (Set.toList vocab))) dict -- create Difference union
+    in
+        return (Map.union difference (Map.map (\count -> count + 1) dict))
+
+-- trainModel :: (Map String Int, Map String Int) -> (Map String Double, Map String Double)
+-- trainModel dictPos dictNeg = 
+--     let vocabulary = makeVocabulary dictPos dictNeg
+--     in 
+
 
 
 getLogProbs :: Map String Int -> IO (Map String Double)
