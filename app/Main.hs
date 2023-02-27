@@ -41,6 +41,11 @@ main
         -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
         putStr (show map_train_pos)
 
+        -- now convert to dict of log-probabilities for positive files
+        logProbs <- getLogProbs map_train_pos
+
+        putStr (show logProbs)
+
         -- comment below out if you want
         -- let fileName = "example"
         -- writeMapModelToDiskAsJSON fileName map_train_pos
@@ -50,6 +55,13 @@ main
 
         putStr "" -- prevent errors in case no IO is performed 
 
+
+getLogProbs :: Map String Int -> IO (Map String Double)
+getLogProbs dict = 
+    do 
+        let total = foldr (+) 0 dict
+        return (Map.map (\x -> log (fromIntegral x/fromIntegral total)) dict)
+            
 
 
 
