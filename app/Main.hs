@@ -27,7 +27,7 @@ main
     = do 
         -- create arraypath of each file.txt in directory
         trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
-        -- trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
+        trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
         -- testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
         -- testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
         -- printDirContents trainPositiveFilePaths -- print contents of each file
@@ -38,22 +38,12 @@ main
 
         -- comment all out if you don't want the program to take forever
         map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
-        -- map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
+        map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
         -- map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
         -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
-        putStr (show map_train_pos)
 
-        -- -- now convert to dict of log-probabilities for positive files
-        -- logProbs <- getLogProbs map_train_pos
-        -- putStr (show logProbs)
-
-        -- putStr (show logProbs)
-        vocab <- (makeVocabulary map_train_pos map_train_pos)
-        -- putStr (show vocab)
-
-        smoothed <- laplaceSmoothing map_train_pos vocab
-
-        putStr (show smoothed)
+        model <- trainModel map_train_pos map_train_neg
+        putStr (show model)
 
         -- comment below out if you want
         -- let fileName = "example"
@@ -68,29 +58,31 @@ main
 -- create the vocabulary set by combining keys from positive and negative maps
 -- perform laplace smoothing 
 -- convert to log probabilities
--- output the model as a tuple of the pos and neg log prob dicts and the bocabulary
+-- output the model as a tuple of the pos and neg log prob dicts and the vocabulary
 
-makeVocabulary :: Map String Int -> Map String Int -> IO (Set String)
-makeVocabulary dictPos dictNeg = return (Set.fromList (map (\(x,y) -> x) (Map.toList (Map.union dictNeg dictPos))))
+makeVocabulary :: Map String Int -> Map String Int -> Set String
+makeVocabulary dictPos dictNeg =  Set.fromList (map (\(x,y) -> x) (Map.toList (Map.union dictNeg dictPos)))
 
-laplaceSmoothing :: Map String Int -> Set String -> IO (Map String Int)
+laplaceSmoothing :: Map String Int -> Set String -> Map String Int
 laplaceSmoothing dict vocab = 
-    let difference = Map.difference (Map.fromList (map (\token -> (token, 1)) (Set.toList vocab))) dict -- create Difference union
+    let difference = Map.difference (Map.fromList (map (\token -> (token, 1)) (Set.toList vocab))) dict -- create Difference between vocab and dict
     in
-        return (Map.union difference (Map.map (\count -> count + 1) dict))
+        Map.union difference (Map.map (\count -> count + 1) dict)
 
--- trainModel :: (Map String Int, Map String Int) -> (Map String Double, Map String Double)
--- trainModel dictPos dictNeg = 
---     let vocabulary = makeVocabulary dictPos dictNeg
---     in 
+trainModel :: Map String Int -> Map String Int -> IO ((Map String Double, Map String Double, Set String))
+trainModel dictPos dictNeg = do
+    let vocabulary = makeVocabulary dictPos dictNeg
+    let smoothedPosCounts = laplaceSmoothing dictPos vocabulary
+    let smoothedNegCounts = laplaceSmoothing dictNeg vocabulary
+    let logProbsPos = getLogProbs smoothedPosCounts
+    let logProbsNeg = getLogProbs smoothedNegCounts
+    return (logProbsPos, logProbsNeg, vocabulary)
 
 
 
-getLogProbs :: Map String Int -> IO (Map String Double)
-getLogProbs dict = 
-    do 
-        let total = foldr (+) 0 dict
-        return (Map.map (\x -> log (fromIntegral x/fromIntegral total)) dict)
+getLogProbs :: Map String Int -> Map String Double
+getLogProbs dict = let total = foldr (+) 0 dict
+        in (Map.map (\x -> log (fromIntegral x/fromIntegral total)) dict)
             
 
 
