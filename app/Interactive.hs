@@ -4,8 +4,11 @@ import System.IO
 import Text.Read   (readMaybe)
 import Tools
 
+import Data.Set (Set)
 import Data.Map (Map)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Maybe as Maybe
 -- To run it, try:
 -- ghci Interactive
 -- start
@@ -16,11 +19,12 @@ welcomeText = "\n~\tHi human!\n~\tWelcome to the Naive Bayes application\n\n"
 helpPrompt = "Type a command; 'help' for a list of commands; or 'exit' to exit: "
 exitMessage = "\n\t--------------------------- Bye! Bye! ---------------------------\n"
 listOfCommands = ["\nList of commands:",
-                  "  ‣ Enter 'state' to get info about the current model selected (if any)",
-                  "  ‣ Enter 'train <val>' to start training a model\n\t<val> can be one of A, B, or C:\n\t| A := 25%-75% train-test split\n\t| B := 50%-50% train-test split\n\t| C := 75%-25% train-test split",
-                  "  ‣ Enter 'models' for a list of existing <model_name>`s",
-                  "  ‣ Enter 'load <model_name>' to load an existing model",
-                  "  ‣ Enter 'validate' to validate the currently selected model, or 'validate <model_name>' to validate a specific model.\n     Gives an error if no model is selected or <model_name> is not in \"./models\" folder"]
+                  "‣ Enter 'state' to get info about the current model selected (if any)",
+                  "‣ Enter 'train <val>' to start training a model\n  | <val> can be one of:\n  |  A := 25%-75% train-test split\n  |  B := 50%-50% train-test split\n  |  C := 75%-25% train-test split",
+                  "‣ Enter 'models' for a list of existing <model_name>`s",
+                  "‣ Enter 'load <model_name>' to load an existing model",
+                  "‣ Enter 'validate' to validate the currently selected model",
+                  "‣ Enter 'validate <model_name>' to validate a specific model.\n"]
                 --   "  5. Enter 'help' for this list of commands.",
                 --   "  6. Enter 'exit' to exit the program."]
 
@@ -31,20 +35,23 @@ listOfCommands = ["\nList of commands:",
 {- ======================================== MAIN ======================================== -}
 
 data State = Empty
-            | LoadedModel ModelName ModelMap ValidationScore
+            |  Model (Maybe LoadedModel) ValidationScore
         deriving (Ord, Eq, Show)
 
-type ModelMap = Map String Int
-type ModelName = Maybe String
-type ValidationScore = Maybe Double 
+type LoadedModel = (ModelName, ModelMap)
+type ModelMap = (Map String Double, Map String Double, Set String)
+type ModelName = String
+type ValidationScore = Maybe Double
+
 
 
 start :: IO ()
 start
     = do
         putStr welcomeText
-        let emptyState = LoadedModel Nothing Map.empty Nothing
+        let emptyState = Model Nothing Nothing
         main_loop emptyState
+
 
 main_loop :: State -> IO ()
 main_loop state =
@@ -95,18 +102,22 @@ printHelp state
         main_loop state
 
 printStateMaybe :: State -> IO ()
-printStateMaybe state@(LoadedModel modelName modelMap validationScore)
+printStateMaybe state@(Model maybeModel validationScore)
     = do
-        case modelName of
-            Just modelName -> printState modelName modelMap validationScore
+        case maybeModel of
+            Just (modelName, modelMap) -> printState modelName modelMap validationScore
             Nothing -> putStrLn "Currently no model is selected :(\n\tHang on though! You can train a new model or select an existing one!\n"
         main_loop state
 
-printState :: String -> Map String Int -> ValidationScore -> IO ()
-printState modelName modelMap validationScore
+
+printState :: String -> (Map String Double, Map String Double, Set String) -> ValidationScore -> IO ()
+printState modelName modelMap@(m1, m2, set) validationScore
     = do
         putStrLn ("Model's file name (without extension): " ++ modelName)
-        putStrLn ("It's map contains " ++ show (Map.size modelMap) ++ " unique words (keys)")
+        putStrLn ("Trained positive map contains: " ++ show (Map.size m1) ++ " unique words (keys)")
+        putStrLn ("Trained negative map contains: " ++ show (Map.size m2) ++ " unique words (keys)")
+        putStrLn ("Number of unique words in both maps: " ++ show (length set) ++ " unique words (keys)")
+
         -- TODO: add total count of words maybe or some interesting statistic?
         case validationScore of
             Just validationScore -> putStrLn ("And the validation score is: " ++ (show validationScore))
@@ -122,22 +133,29 @@ printModels state
 trainModelHandler :: State -> String -> IO ()
 trainModelHandler state option
     = do
+        -- A := 25%-75% train-test split\n B := 50%-50% train-test split\n  |  C := 75%-25% train-test split
         putStrLn option
+        
+        -- if option == "a"
+        --     -- 
         main_loop state
 
 
 -- triggered when a valid model file with a base name of modelName was provided by user
 loadModelHandler :: State -> String -> IO ()
-loadModelHandler state modelName -- maybe state is not needed since we are 
+loadModelHandler state modelName 
     = do
         -- we need to load the current model into state
         -- putStrLn modelName
-        readModel <- readJsonModelFromDisk modelName :: IO (Map String Int)
-        if readModel == Map.empty
-            then putStrLn "Warning: the loaded model is empty!"
-            else putStrLn "Model read!"
-        let newState = LoadedModel (Just modelName) readModel Nothing
-        main_loop newState
+        readModel <- readTrainedModelFromDisk modelName :: IO (Maybe (Map String Double, Map String Double, Set String))
+        case readModel of
+            Nothing -> do
+                        putStrLn "Warning: the loaded model is empty!"
+                        main_loop state
+            Just readModel -> do
+                    putStrLn "Model read!"
+                    main_loop (Model (Just (modelName, readModel)) Nothing)
+
 
 validateModelHandler :: State -> String -> IO ()
 validateModelHandler state modelName

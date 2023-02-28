@@ -5,13 +5,15 @@ import System.FilePath (takeExtension, takeBaseName)
 import Data.List (sort)
 -- https://hackage.haskell.org/package/directory-1.3.8.0/docs/System-Directory.html#v%3agetDirectoryContents
 import System.Directory 
+import Data.Set (Set)
 import Data.Map (Map)
+import qualified Data.Set as Set
 import qualified Data.Map as Map
 import qualified Data.Aeson as Aeson
 import qualified Data.ByteString.Lazy.Char8 as BS
 {- ====================================== DATA DEF ====================================== -}
 
-datasetsPath = "datasets_dev" :: FilePath
+datasetsPath = "../datasets_dev" :: FilePath
 modelsPath = "../models" :: FilePath
 
 trainPositivePath   = datasetsPath ++ "/train_positive" :: FilePath
@@ -128,7 +130,7 @@ getAllJsonFileNames
         dirContents <- getDirectoryContents modelsPath
         return $ sort (map takeBaseName (filter isJsonFile dirContents))
 
-readJsonModelFromDisk :: FilePath -> IO (Map String Int)
+readJsonModelFromDisk :: FilePath -> IO (Maybe (Map String Int))
 readJsonModelFromDisk fileName
     = do
         let filePath = modelsPath ++ "/" ++ fileName ++ ".json"
@@ -136,22 +138,8 @@ readJsonModelFromDisk fileName
         decodedMap <- fmap Aeson.decode byteStringData
         case decodedMap of
             Just d -> return d
-            Nothing -> readJsonModelErrorHandler
--- readJsonModelFromDisk filePath
---     = do
---         let byteStringData = BS.readFile filePath
---         decodedMap <- fmap Aeson.decode byteStringData
---         case decodedMap of
---             Just d -> return (Map.assocs (d :: Map.Map String Int))
---             Nothing -> readJsonModelErrorHandler
+            Nothing -> return Nothing
 
--- Not sure if this is sufficient, but the aim of the function is to somewhat aid in Error handling 
--- in instances when the Aeson.decode function is not able to read a ByteString map from disk
-readJsonModelErrorHandler :: IO (Map String Int)
-readJsonModelErrorHandler
-    = do
-        putStrLn "Error in readJsonModelFromDis: Either the ByteString file contained trailing data; or\n\tAeson.decode failed due to incomplete or invalid input."
-        return Map.empty
 
 -- Assumes that the modelsPath directory exists
 -- Writes a Map where `key` :: String (the word) and `value` :: Int (number of occurences in the train dataset) 
@@ -163,3 +151,22 @@ writeMapModelToDiskAsJSON fileName mapData
         let encodedMap = Aeson.encode (Map.delete "" mapData) 
         let filePath = modelsPath ++ "/" ++ fileName ++ ".json"
         BS.writeFile filePath encodedMap
+
+writeTrainedModelToDiskAsJSON :: String -> (Map String Double, Map String Double, Set String) -> IO ()
+writeTrainedModelToDiskAsJSON fileName mapData
+    = do
+        -- remove "" key (for some reason it is not removed earlier in getDirContents)
+        let encodedMap = Aeson.encode mapData
+        let filePath = modelsPath ++ "/" ++ fileName ++ ".json"
+        BS.writeFile filePath encodedMap
+    
+
+readTrainedModelFromDisk :: FilePath -> IO (Maybe (Map String Double, Map String Double, Set String))
+readTrainedModelFromDisk fileName
+    = do
+        let filePath = modelsPath ++ "/" ++ fileName ++ ".json"
+        let byteStringData = BS.readFile filePath
+        decodedMap <- fmap Aeson.decode byteStringData
+        case decodedMap of
+            Just d -> return d
+            Nothing -> return Nothing
