@@ -46,7 +46,32 @@ We acquired more practical experience in writing Haskell applications and Cabal 
 
 ## How to use this program?
 
-Sed consequat tincidunt ligula, sed auctor neque tincidunt id. Nunc sed neque cursus ante vehicula pulvinar posuere ac neque. Nulla facilisi. Morbi feugiat mi a viverra accumsan. Duis ut volutpat augue. In euismod purus in ullamcorper dictum. Sed mollis orci velit, in lacinia odio feugiat egestas. Sed neque lorem, hendrerit at pellentesque vel, hendrerit vehicula leo.
+Assuming all imports are working with cabal (which is unlikely since we haven't tested it and we are sure there are problems), just do:
+1. Go into /app folder
+2. Type `ghci`
+3. Type `:l Main`
+4. Type `main` to start the Interactive CLI
+
+How to use the CLI?
+- Once your program is running with `main`, the `help` command gives all of the commands that you need to know
+- You can exit by typing `exit` or `e`
+- You can get the list of all models in the /models folder by typing `models` or `m`
+- You can select/load a model from that list using `load <model_name`
+- You can see the currently selected model and some info about it using `state` or `s`
+- You can train a new model using `train <model_name>`. If a duplicate name is given, it overwrites that model I believe
+- You can validate a model using `validate` or `v`, it always validates the currently selected model (we didn't have time to implement more functions so bear with us)
+
+## What does the program do?
+When doing training, the program is able to generate new training and testing sets, since it shuffles the file lists randomly.
+You can select the training split, we made 3 options:
+- 25%-75% train-validation %
+- 50%-50% train-validation %
+- 75%-25% train-validation %
+
+---
+- You don't need to validate right away with our program, since we save the test data sets for later use :)
+- The program does not re-validate a model that was previously validated, as long as the its score can be found in scores.json 
+  - This saves a lot of time for unnecessary recomputation
 
 [^1]: dataset citation, see [also](https://github.com/yegory/NaiveBayes/tree/master/datasets): 
 @InProceedings{maas-EtAl:2011:ACL-HLT2011,
