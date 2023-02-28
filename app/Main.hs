@@ -23,6 +23,7 @@ punctuation = "!\"#$%&'()*+, -./:;<=>?@[]^_`{|}~ "
 
 {- ======================================== MAIN ======================================== -}
 
+type Model = (Map String Double, Map String Double, Set String)
 
 main :: IO ()
 main 
@@ -30,7 +31,7 @@ main
         -- create arraypath of each file.txt in directory
         trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
         trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
-        -- testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
+        testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
         -- testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
         -- printDirContents trainPositiveFilePaths -- print contents of each file
 
@@ -43,14 +44,15 @@ main
         map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
         -- map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
         -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
-        putStr (show map_train_pos)
-        putStr (show map_train_neg)
 
         model <- trainModel map_train_pos map_train_neg
         -- putStr (show model)
 
-        result <- inference model "Character director good." stopWords
+        result <- inference model "it is a bad movie, the director was terrible." stopWords
         putStr (show result)
+
+        validate <- validateMultiple model testPositiveFilePaths stopWords
+        putStr (show validate)
 
         -- comment below out if you want
         -- let fileName = "example"
@@ -66,6 +68,14 @@ main
 -- perform laplace smoothing 
 -- convert to log probabilities
 -- output the model as a tuple of the pos and neg log prob dicts and the vocabulary
+validateMultiple :: Model -> [String] -> [String] -> IO([Bool])
+validateMultiple model paths stopwords = mapM (\path -> validateSingle model path stopwords) paths
+
+-- function that validates a single text file
+validateSingle :: Model -> String -> [String] ->  IO (Bool)
+validateSingle model path stopwords = do
+    review <- readFileStrict path
+    inference model review stopwords
 
 makeVocabulary :: Map String Int -> Map String Int -> Set String
 makeVocabulary dictPos dictNeg =  Set.fromList (map (\(x,y) -> x) (Map.toList (Map.union dictNeg dictPos)))
@@ -104,7 +114,15 @@ inference (dictPos, dictNeg, vocab) review stopWords = do
     -- calculate log probability for being in positive
     let logProbPos = sumLogProbs tokenList dictPos
     let logProbNeg = sumLogProbs tokenList dictNeg
-    return (logProbPos < logProbNeg) -- NOTE the direction is reversed here ... there could be a bug
+    -- putStr (show tokenList)
+    -- putStr "\n"
+    -- putStr (show dictPos)
+    -- putStr "\n"
+    -- putStr (show dictNeg)
+    -- putStr (show logProbPos)
+    -- putStr "\n"
+    -- putStr (show logProbNeg)
+    return (logProbPos > logProbNeg) -- NOTE the direction is reversed here ... there could be a bug
 
 -- Get directory contents as array of string, each element is an individual review from some txt file from filePaths
 getDirContents :: Map String Int -> [String] -> [String] -> IO (Map String Int)
@@ -119,7 +137,6 @@ getDirContents dict stopWords filePaths@(x:xs)
         let xSplitLowerStopWords = filter (`notElem` stopWords) xSplitLower :: [String]
         -- insert the words from the current file x into the dictionary dict
         getDirContents (insertWords dict xSplitLowerStopWords) stopWords xs
-
 
 
 insertWords :: Map String Int -> [String] -> Map String Int
