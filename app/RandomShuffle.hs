@@ -1,3 +1,5 @@
+module RandomShuffle where
+
 -- Citation: https://wiki.haskell.org/Random_shuffle
 -- used to randomly shuffle a list
 
