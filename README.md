@@ -40,12 +40,7 @@ In addition to the expected basic functionality, our program will:
 
 ## What did we learn from doing this?
 
-Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed venenatis elit ligula, sed commodo turpis auctor ut. Donec vel metus tincidunt, eleifend urna ut, porttitor augue. Pellentesque feugiat, lorem convallis tempor viverra, risus nunc pulvinar diam, a gravida sem nisl sit amet ex.
-- Nunc quis elit id risus blandit lobortis.
-  - Vestibulum at felis cursus, tincidunt urna non, vulputate nibh.
-- Fusce ut ipsum vitae quam faucibus pellentesque eu quis eros.
-- Vestibulum faucibus sem sit amet vehicula volutpat.
-- Ut et lectus nec augue porta laoreet in nec metus.
+We acquired more practical experience in writing Haskell applications and Cabal projects. We learned a more in-depth about Input/Output, several data structures and their operations (Map,Set, etc). We also acquired a better intuition about cryptic Haskell compile errors and how to debug them. Also, not the least important, we got a taste of working with files, like reading the data to and from them. Finally, by implementing the simple Naive-Bayes algorithm we saw the potential in implementing machine learning algorithms in Haskell.
 
 ---
 
