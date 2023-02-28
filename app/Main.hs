@@ -8,7 +8,11 @@ import System.FilePath
 import qualified Data.Text as T
 import qualified Data.Text.IO as TIO
 import Data.Map (Map)
+import Data.Set (Set)
+import Data.Maybe (Maybe)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
+import qualified Data.Maybe as Maybe
 
 punctuation = "!\"#$%&'()*+, -./:;<=>?@[]^_`{|}~ "
 
@@ -23,78 +27,24 @@ punctuation = "!\"#$%&'()*+, -./:;<=>?@[]^_`{|}~ "
 main :: IO ()
 main 
     = do 
-        -- create arraypath of each file.txt in directory
-        -- trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
-        -- trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
-        -- testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
-        -- testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
-        -- printDirContents trainPositiveFilePaths -- print contents of each file
-
-        -- get the array of stop words to remove
-        -- s <- readFileStrict stopwordsFilePath :: IO String
-        -- let stopWords = splitOn ['\n'] s :: [String]
-
-        -- comment all out if you don't want the program to take forever
-        -- map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
-        -- map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
-        -- map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
-        -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
+        start
+        --- TRAIN THE MODEL
+        -- accuracy <- trainAndValidate
 
         -- comment below out if you want
         -- let fileName = "example"
         -- writeMapModelToDiskAsJSON fileName map_train_pos
         -- s <- readJsonModelFromDisk fileName
         -- printMap (Map.assocs s)
-        start
+        -- start
 
         putStr "" -- prevent errors in case no IO is performed 
 
 
-
-
--- Get directory contents as array of string, each element is an individual review from some txt file from filePaths
-getDirContents :: Map String Int -> [String] -> [String] -> IO (Map String Int)
-getDirContents dict stopWorsds [] = return dict
-getDirContents dict stopWords filePaths@(x:xs)
-    = do
-        xData <- readFileStrict x
-
-        -- remove all non unicode characters and convert to lowercase 
-        let xSplitLower = map (\s -> lowerString (filter keepletter s)) (splitOn punctuation xData) :: [String]
-        -- remove stop words
-        let xSplitLowerStopWords = filter (`notElem` stopWords) xSplitLower :: [String]
-        -- insert the words from the current file x into the dictionary dict
-        getDirContents (insertWords dict xSplitLowerStopWords) stopWords xs
-
-
-
-insertWords :: Map String Int -> [String] -> Map String Int
-insertWords map [] = map
-insertWords map words@(x:xs)
-    = case Map.lookup x map of
-            Just v -> insertWords (Map.insert x (v + 1) map) xs
-            Nothing -> insertWords (Map.insert x 1 map) xs
-
-
-
-{-
-I wanted to keep using hGetContents like in printFileContents, but I got the Error: "hGetContents": illegal operation (delayed read on closed handle)
-apparently it's because hGetContents is lazily evaluated
-
-So I did this:
-    getFileContents :: FilePath -> IO String
-    getFileContents filePath = do readFile filePath 
-
-but then I got the Error: "getCurrentDirectory: resource exhausted (Too many open files)" error
-This is apparently because Prelude.readFile has lazy I/O, but pure I/O is: using Data.Text.IO.readFile
-https://stackoverflow.com/a/22894297/11792937
--}
-readFileStrict :: FilePath -> IO String
-readFileStrict = fmap T.unpack . TIO.readFile
--- Try in main:
--- filedataTestPos_0_10_txt <- readFileStrict (testPositivePath ++ "/" ++ "0_10.txt")
--- putStrLn filedataTestPos_0_10_txt
-
+-- create the vocabulary set by combining keys from positive and negative maps
+-- perform laplace smoothing 
+-- convert to log probabilities
+-- output the model as a tuple of the pos and neg log prob dicts and the vocabulary
 
 
 {- ======================================= HELPERS ======================================= -}
