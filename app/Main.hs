@@ -29,25 +29,7 @@ main :: IO ()
 main 
     = do 
         --- TRAIN THE MODEL
-        -- create arraypath of each file.txt in directory
-        trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
-        trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
-        testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
-        testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
-        -- get the array of stop words to remove
-        s <- readFileStrict stopwordsFilePath :: IO String
-        let stopWords = splitOn ['\n'] s :: [String]
-        map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
-        map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
-        model <- trainModel map_train_pos map_train_neg
-        -- putStr (show model)
-
-        -- result <- inference model "it is a bad movie, the director was terrible." stopWords
-        -- putStr (show result)
-
-        --- COMPUTE THE accuracy
-        accuracy <- validationAccuracy model testPositiveFilePaths testNegativeFilePaths stopWords
-        putStr (show accuracy)
+        accuracy <- trainAndValidate
 
         -- comment below out if you want
         -- let fileName = "example"
@@ -58,9 +40,32 @@ main
 
         putStr "" -- prevent errors in case no IO is performed 
 
+--- general procedure to train and validate the model given our dataset
+trainAndValidate :: IO (Double)
+trainAndValidate = do     
+    -- create arraypath of each file.txt in directory
+    trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
+    trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
+    testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
+    testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
+    -- get the array of stop words to remove
+    s <- readFileStrict stopwordsFilePath :: IO String
+    let stopWords = splitOn ['\n'] s :: [String]
+    map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
+    map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
+    model <- trainModel map_train_pos map_train_neg
+    -- putStr (show model)
+
+    -- result <- inference model "it is a bad movie, the director was terrible." stopWords
+    -- putStr (show result)
+
+    --- COMPUTE THE accuracy
+    accuracy <- validationAccuracy model testPositiveFilePaths testNegativeFilePaths stopWords
+    putStr (show accuracy)
+    return accuracy
+
 
 ---  THE FOLLOWING FUNCTIONS ARE FOR VALIDATING THE MODEL WITH TEST EXAMPLES
-
 --- calculates validation accuracy given paths to negative and positive examples
 --- alongside with the model to be validated
 validationAccuracy :: Model -> [String] -> [String] -> [String] -> IO (Double)
