@@ -28,31 +28,26 @@ type Model = (Map String Double, Map String Double, Set String)
 main :: IO ()
 main 
     = do 
+        --- TRAIN THE MODEL
         -- create arraypath of each file.txt in directory
         trainPositiveFilePaths <- getAllTxtFilePaths trainPositivePath :: IO [String]
         trainNegativeFilePaths <-getAllTxtFilePaths trainNegativePath :: IO [String]
         testPositiveFilePaths <- getAllTxtFilePaths testPositivePath :: IO [String] 
-        -- testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
-        -- printDirContents trainPositiveFilePaths -- print contents of each file
-
+        testNegativeFilePaths <-getAllTxtFilePaths testNegativePath :: IO [String]
         -- get the array of stop words to remove
         s <- readFileStrict stopwordsFilePath :: IO String
         let stopWords = splitOn ['\n'] s :: [String]
-
-        -- comment all out if you don't want the program to take forever
         map_train_pos <- getDirContents Map.empty stopWords trainPositiveFilePaths :: IO (Map String Int)
         map_train_neg <- getDirContents Map.empty stopWords trainNegativeFilePaths :: IO (Map String Int)
-        -- map_test_pos <- getDirContents Map.empty stopWords testPositiveFilePaths :: IO (Map String Int)
-        -- map_test_neg <- getDirContents Map.empty stopWords testNegativeFilePaths :: IO (Map String Int)
-
         model <- trainModel map_train_pos map_train_neg
         -- putStr (show model)
 
-        result <- inference model "it is a bad movie, the director was terrible." stopWords
-        putStr (show result)
+        -- result <- inference model "it is a bad movie, the director was terrible." stopWords
+        -- putStr (show result)
 
-        validate <- validateMultiple model testPositiveFilePaths stopWords
-        putStr (show validate)
+        --- COMPUTE THE accuracy
+        accuracy <- validationAccuracy model testPositiveFilePaths testNegativeFilePaths stopWords
+        putStr (show accuracy)
 
         -- comment below out if you want
         -- let fileName = "example"
@@ -64,34 +59,69 @@ main
         putStr "" -- prevent errors in case no IO is performed 
 
 
--- create the vocabulary set by combining keys from positive and negative maps
--- perform laplace smoothing 
--- convert to log probabilities
--- output the model as a tuple of the pos and neg log prob dicts and the vocabulary
+---  THE FOLLOWING FUNCTIONS ARE FOR VALIDATING THE MODEL WITH TEST EXAMPLES
+
+--- calculates validation accuracy given paths to negative and positive examples
+--- alongside with the model to be validated
+validationAccuracy :: Model -> [String] -> [String] -> [String] -> IO (Double)
+validationAccuracy model posFilePaths negFilePaths stopWords= do
+    valPos <- validateMultiple model posFilePaths stopWords
+    valNeg <- validateMultiple model negFilePaths stopWords
+    let correctPos = sum (map (\bool -> if bool then 1.0 else 0.0) valPos)
+    let correctNeg = sum (map (\bool -> if bool then 0.0 else 1.0) valNeg)
+    let incorrectPos = fromIntegral(length valPos) - correctPos
+    let incorrectNeg = fromIntegral(length valNeg) - correctNeg
+    let accuracy = (correctPos + correctNeg) / (correctPos + correctNeg + incorrectPos + incorrectNeg)
+    return accuracy
+
+--- validates multiple examples given their paths 
 validateMultiple :: Model -> [String] -> [String] -> IO([Bool])
 validateMultiple model paths stopwords = mapM (\path -> validateSingle model path stopwords) paths
-
--- function that validates a single text file
+--- validates a simple example given a path and outputs IO True if the example is positive
 validateSingle :: Model -> String -> [String] ->  IO (Bool)
 validateSingle model path stopwords = do
     review <- readFileStrict path
     inference model review stopwords
 
+--- CODE FOR TRAINING THE MODEL
+--- produce a total vocabulary of tokens given dictionaries of positive and negative examples
 makeVocabulary :: Map String Int -> Map String Int -> Set String
 makeVocabulary dictPos dictNeg =  Set.fromList (map (\(x,y) -> x) (Map.toList (Map.union dictNeg dictPos)))
 
+--- performs laplace smoothing in a count dictionary against the vocabulary
 laplaceSmoothing :: Map String Int -> Set String -> Map String Int
 laplaceSmoothing dict vocab = 
     let difference = Map.difference (Map.fromList (map (\token -> (token, 1)) (Set.toList vocab))) dict -- create Difference between vocab and dict
     in
         Map.union difference (Map.map (\count -> count + 1) dict)
 
+--- converts a count dicitonary into a log probability dictionary
 getLogProbs :: Map String Int -> Map String Double
 getLogProbs dict = let total = foldr (+) 0 dict
         in (Map.map (\x -> log (fromIntegral x/fromIntegral total)) dict)
-            
 
-trainModel :: Map String Int -> Map String Int -> IO ((Map String Double, Map String Double, Set String))
+-- convert directory contents defined by path list, create a count dictionary of tokens
+getDirContents :: Map String Int -> [String] -> [String] -> IO (Map String Int)
+getDirContents dict stopWorsds [] = return dict
+getDirContents dict stopWords filePaths@(x:xs)
+    = do
+        xData <- readFileStrict x
+        -- remove all non unicode characters and convert to lowercase 
+        let xSplitLower = map (\s -> lowerString (filter keepletter s)) (splitOn punctuation xData) :: [String]
+        -- remove stop words
+        let xSplitLowerStopWords = filter (`notElem` stopWords) xSplitLower :: [String]
+        -- insert the words from the current file x into the dictionary dict
+        getDirContents (insertWords dict xSplitLowerStopWords) stopWords xs
+
+insertWords :: Map String Int -> [String] -> Map String Int
+insertWords map [] = map
+insertWords map words@(x:xs)
+    = case Map.lookup x map of
+            Just v -> insertWords (Map.insert x (v + 1) map) xs
+            Nothing -> insertWords (Map.insert x 1 map) xs
+
+--- trains the Naive Bayes model given count dicitonaries of positive and negative examples
+trainModel :: Map String Int -> Map String Int -> IO (Model)
 trainModel dictPos dictNeg = do
     let vocabulary = makeVocabulary dictPos dictNeg
     let smoothedPosCounts = laplaceSmoothing dictPos vocabulary
@@ -100,13 +130,10 @@ trainModel dictPos dictNeg = do
     let logProbsNeg = getLogProbs smoothedNegCounts
     return (logProbsPos, logProbsNeg, vocabulary)
 
-sumLogProbs :: [String] -> Map String Double -> Double
-sumLogProbs tokenList dict = sum (map (\token -> 
-                            let value = Map.lookup token dict in
-                                Maybe.fromMaybe 0 value) tokenList)
+--- CODE FOR CONDUCTING MODEL INFERENCE
 
--- write a function that given a string review, produces an answer if it is positive or negative
-inference :: (Map String Double, Map String Double, Set String) -> String -> [String] -> IO (Bool)
+-- given a string representing a movie review and stopwords, produce True if review is positive
+inference :: Model -> String -> [String] -> IO (Bool)
 inference (dictPos, dictNeg, vocab) review stopWords = do
     -- we want to parse the string into tokens
     let xSplitLower = map (\s -> lowerString (filter keepletter s)) (splitOn punctuation review) :: [String]
@@ -114,37 +141,15 @@ inference (dictPos, dictNeg, vocab) review stopWords = do
     -- calculate log probability for being in positive
     let logProbPos = sumLogProbs tokenList dictPos
     let logProbNeg = sumLogProbs tokenList dictNeg
-    -- putStr (show tokenList)
-    -- putStr "\n"
-    -- putStr (show dictPos)
-    -- putStr "\n"
-    -- putStr (show dictNeg)
-    -- putStr (show logProbPos)
-    -- putStr "\n"
-    -- putStr (show logProbNeg)
     return (logProbPos > logProbNeg) -- NOTE the direction is reversed here ... there could be a bug
 
--- Get directory contents as array of string, each element is an individual review from some txt file from filePaths
-getDirContents :: Map String Int -> [String] -> [String] -> IO (Map String Int)
-getDirContents dict stopWorsds [] = return dict
-getDirContents dict stopWords filePaths@(x:xs)
-    = do
-        xData <- readFileStrict x
+--- given a list of tokens and log probability dicitonary of tokens,
+--- calculate a sum of log probabilities of the corresponding tokens in the list
+sumLogProbs :: [String] -> Map String Double -> Double
+sumLogProbs tokenList dict = sum (map (\token -> 
+                            let value = Map.lookup token dict in
+                                Maybe.fromMaybe 0 value) tokenList)
 
-        -- remove all non unicode characters and convert to lowercase 
-        let xSplitLower = map (\s -> lowerString (filter keepletter s)) (splitOn punctuation xData) :: [String]
-        -- remove stop words
-        let xSplitLowerStopWords = filter (`notElem` stopWords) xSplitLower :: [String]
-        -- insert the words from the current file x into the dictionary dict
-        getDirContents (insertWords dict xSplitLowerStopWords) stopWords xs
-
-
-insertWords :: Map String Int -> [String] -> Map String Int
-insertWords map [] = map
-insertWords map words@(x:xs)
-    = case Map.lookup x map of
-            Just v -> insertWords (Map.insert x (v + 1) map) xs
-            Nothing -> insertWords (Map.insert x 1 map) xs
 
 
 
